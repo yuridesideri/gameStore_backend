@@ -3,7 +3,7 @@ import { deleteRental, finishRental, listRental, postRental } from "../controlle
 
 
 
-const rentRoutes = Router();
+const rentRouter = Router();
 
 
 rentRouter.delete("/rentals/:id", deleteRental);
@@ -12,4 +12,4 @@ rentRouter.post("/rentals", postRental);
 rentRouter.get("/rentals", listRental)
 
 
-export default rentRoutes;
+export default rentRouter;
