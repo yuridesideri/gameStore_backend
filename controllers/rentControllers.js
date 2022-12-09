@@ -4,7 +4,7 @@ import { rentSchema } from "../models/rentModel.js";
 import { parseDelayFee } from "../helpers/helpers.js";
 
 
-export async function listRentals (req, res){
+export async function listRental (req, res){
     const {customerId, gameId} = req.params;
     try{
         console.log('s')
@@ -23,7 +23,7 @@ export async function listRentals (req, res){
     }
 }
 
-export async function postRentals (req, res){
+export async function postRental (req, res){
     const rentalToInsert = req.body;
     try{
         const rentalToInsertValid = await rentSchema.validateAsync(rentalToInsert);
@@ -86,6 +86,31 @@ export async function finishRental (req, res){
         res.sendStatus(200);
 
     } catch (err) {
+        res.send(err);
+    }
+}
+
+
+export async function deleteRental (req, res){
+    const {id : rentalId} = req.params;
+    try{
+        const rental = await connection.query(`
+            SELECT * 
+            FROM ${rentalsTb}
+            WHERE id = $1
+        `, [rentalId])[0];
+
+        if (!rental) throw new Error("Rental doesn't exist");
+        if (!rental.returnDate) throw new Error("Open rental");
+
+        await connection.query(`
+            DELETE 
+            FROM ${rentalsTb}
+            WHERE id = $1
+        `,[rentalId])
+
+        res.sendStatus(200);
+    }   catch (err) {
         res.send(err);
     }
 }

@@ -20,11 +20,11 @@ export async function listCustomers(req, res){
 }
 
 
-export async function insertClient (req, res){
-    const clientToInsert = req.body;
+export async function insertCustomers (req, res){
+    const customerToInsert = req.body;
     try{
-        const clientToInsertValid = insertCustomerSchema.validateAsync(clientToInsert);
-        const {name, phone, cpf, birthday} = clientToInsertValid;
+        const customerToInsertValid = insertCustomerSchema.validateAsync(customerToInsert);
+        const {name, phone, cpf, birthday} = customerToInsertValid;
         //TODO 
         //Check if cpf already exists
         await connection.query(`INSERT INTO $1 (name, phone, cpf, birthday) = ($2, $3, $4, $5)`,[customersTb, name, phone,cpf,birthday])
@@ -37,11 +37,11 @@ export async function insertClient (req, res){
 }
 
 
-export async function updateClient (req, res){
-    const clientToUpdate = req.body;
+export async function updateCustomer (req, res){
+    const customerToUpdate = req.body;
     try{
-        const clientToUpdateValid = insertCustomerSchema.validateAsync(clientToUpdate);
-        const {name, phone, cpf, birthday} = clientToUpdateValid;
+        const customerToUpdateValid = insertCustomerSchema.validateAsync(customerToUpdate);
+        const {name, phone, cpf, birthday} = customerToUpdateValid;
         //TODO
         //Check if CPF Exists
         await connection.query(`UPDATE $1 SET (name, phone, cpf, birthday) = ($2, $3, $4, $5) WHERE cpf=$4`,[customersTb, name, phone,cpf,birthday]);
