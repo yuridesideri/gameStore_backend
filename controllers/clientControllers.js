@@ -1,5 +1,5 @@
-import connection, { customersTb } from "../database/database";
-import { insertCustomerSchema } from "../models/clientsModel";
+import connection, { customersTb } from "../database/database.js";
+import { insertCustomerSchema } from "../models/clientsModel.js";
 
 
 
