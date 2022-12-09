@@ -21,6 +21,6 @@ export async function postCategories (req, res){
     }
     catch (err){
         console.log(err);
-        res.send('generic error');
+        res.send(err);
     }
 }

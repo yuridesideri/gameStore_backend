@@ -1,10 +1,12 @@
-import { Router } from "express";
+import { json, Router } from "express";
+import { listGames, postGames } from "../controllers/gamesControllers.js";
 
 
 
 const gamesRouter = Router();
 
-
+gamesRouter.get('/games', listGames);
+gamesRouter.post('/games', postGames)
 
 
 

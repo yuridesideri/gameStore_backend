@@ -6,12 +6,12 @@ export async function listGames (req, res){
         const reqParams = req.params;
         //TODO
         //Adicionar filtro de queryString
-        const games = await connection.query(`SELECT * FROM $1`, [gamesTb]);
+        const games = await connection.query("SELECT * FROM games;");
         //TODO
         //Adicionar parte que pega o categoryId e concatena no objeto a categoryName
         res.send(games);
      } catch (err){
-        res.send('generic error');
+        res.send(err);
      }
 }
 
@@ -22,7 +22,7 @@ export async function postGames (req, res){
         const gameToPostValid = await gameSchema.validateAsync(gameToPost);
         const {categoryId, name} = gameToPostValid;
         const existCategoryId = await connection.query(`SELECT id FROM $1 WHERE id='$2'`,[categoriesTb, categoryId]);
-        const existName = await connection.query(`SELECT name FROM $1 WHERE name = '$2'`,[gamesTb, name])
+        const existName = await connection.query(`SELECT name FROM $1 WHERE name='$2'`,[gamesTb, name])
         if(!existCategoryId){
             throw new Error('Category not Found');
         }
@@ -30,7 +30,7 @@ export async function postGames (req, res){
             throw new Error('Game name already exists');
         }
     } catch (err){
-        res.send('generic error');
+        res.send(err);
         //TODO
         //Retorna err 400 (category not found)
         //Retornar err 409 (game exists)
