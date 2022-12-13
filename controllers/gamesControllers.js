@@ -25,12 +25,13 @@ export async function postGames (req, res){
     try{
         const gameToPostValid = await gameSchema.validateAsync(gameToPost);
         const {categoryId, name} = gameToPostValid;
-        const {rows : [{id : existCategoryId}] } = await connection.query(`SELECT id FROM ${categoriesTb} WHERE id=$1`,[categoryId]);
-        const {rows: [{name : existName}]} = await connection.query(`SELECT name FROM ${gamesTb} WHERE name=$1`,[name])
-        if(!existCategoryId){
+        const {rows : existCategoryId } = await connection.query(`SELECT id FROM ${categoriesTb} WHERE id=$1`,[categoryId]);
+        console.log('a')
+        const {rows: existName} = await connection.query(`SELECT name FROM ${gamesTb} WHERE name=$1`,[name])
+        if(existCategoryId.length === 0){
             throw new Error('Category not Found');
         }
-        if(existName){
+        if(existName.length !== 0){
             throw new Error('Game name already exists');
         }
         await InsertQuery(gamesTb, gameToPostValid);
@@ -38,6 +39,7 @@ export async function postGames (req, res){
     } catch (err){
         const errMsg = err.message;
         if (errMsg === "Game name already exists") res.status(409);
+        console.log(err);
         res.status(400);
         res.send(err);
     }

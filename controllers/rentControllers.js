@@ -1,18 +1,33 @@
 import dayjs from "dayjs";
-import connection, { customersTb, gamesTb, rentalsTb } from "../database/database.js";
+import connection, { categoriesTb, customersTb, gamesTb, rentalsTb } from "../database/database.js";
 import { rentSchema } from "../models/rentModel.js";
 import { InsertQuery, parseDelayFee } from "../helpers/helpers.js";
 
 
 export async function listRental (req, res){
-    const {customerId, gameId} = req.params;
+    const {customerId, gameId} = req.query;
     try{
-
+        
         const {rows: rentals} = await connection.query(`
-        SELECT re.*, cu AS "customer", ga as "game"
-        FROM ${rentalsTb} AS re, ${customersTb} as cu, ${gamesTb} as ga
-        WHERE re."customerId" = cu.id AND re."gameId" = ga.id;
-        `)
+        SELECT 
+        re.*, 
+        json_build_object(
+            'id', cu.id,
+            'name', cu.name
+        ) as "customer", 
+        json_build_object(
+            'id', ga.id,
+            'name', ga.name,
+            'categoryId', ga."categoryId",
+            'categoryName', ca.name
+            ) as "game"
+        FROM ${rentalsTb} AS re
+        JOIN ${customersTb} AS cu ON re."customerId" = cu.id
+        JOIN ${gamesTb} AS ga ON re."gameId" = ga.id
+        JOIN ${categoriesTb} AS ca ON ga."categoryId"=ca.id
+        `);
+
+        console.log(rentals);
 
         //TODO 
         //APENAS GAME ID
@@ -21,6 +36,7 @@ export async function listRental (req, res){
 
         res.send(rentals);
     } catch (err) {
+        console.log(err);
         res.send(err);
     }
 }
@@ -29,13 +45,21 @@ export async function postRental (req, res){
     const rentalToInsert = req.body;
     try{
         const rentalToInsertValid = await rentSchema.validateAsync(rentalToInsert);
-        const {rows: [{gamePrice}]} = await connection.query(`
-            SELECT "pricePerDay" AS "gamePrice"
+        const {rows: [{gamePrice, stockTotal}]} = await connection.query(`
+            SELECT "pricePerDay" as "gamePrice", "stockTotal"
             FROM ${gamesTb} AS g
             WHERE g.id = $1
         `, [rentalToInsertValid.gameId])
 
+        if (stockTotal === 0) throw new Error("Exceeded Stock");
+        
+        const {rows: [{customerId}]} = await connection.query(`
+            SELECT id as "customerId"
+            FROM ${customersTb} AS c
+            WHERE c.id = $1
+        `, [rentalToInsertValid.customerId])
 
+        if(!customerId) throw newError("No user associated with id");
 
         const rentalToInsertPopulated = {
             ...rentalToInsertValid,
@@ -45,10 +69,6 @@ export async function postRental (req, res){
             originalPrice : gamePrice * (rentalToInsertValid.daysRented)
         }
 
-        //TODO
-        //CHECK FOR GAMEID
-        //CHECK FOR GAME STOCK
-        //CHECK FOR CUSTOMER ID
 
         await InsertQuery(rentalsTb ,rentalToInsertPopulated);
 
@@ -64,19 +84,18 @@ export async function postRental (req, res){
 export async function finishRental (req, res){
     const {id : rentalId} = req.params;
     try {
-        const {rows: [dbRent]} = await connection.query(`
+        const {rows: dbRent} = await connection.query(`
             SELECT * 
             FROM ${rentalsTb}
             WHERE id=$1
         `,[rentalId])
 
-        const {rentDate, daysRented, originalPrice, id} = dbRent;
+        const {rentDate, daysRented, originalPrice, id, returnDate: isReturned} = dbRent[0];
 
-        if (null) throw new Error('Rent Not Found'); //TODO Check for inexistent
+        if (dbRent.length === 0) throw new Error('Rent Not Found');
+        if (isReturned) throw new Error ('Already Returned Rent');
 
-        //TODO
-        //CHECK IF RENT IS ALREADY COMPLETED -> 400
-        //RETURN 400 IF RENT ERROR
+
         const returnDate = dayjs().format('YYYY-MM-DD');
         const delayFee = parseDelayFee(rentDate, originalPrice, daysRented);
 
@@ -90,6 +109,8 @@ export async function finishRental (req, res){
         res.sendStatus(200);
 
     } catch (err) {
+        if (err.message === "Rent Not Found") res.status(404);
+        else res.status(400);
         console.log(err);
         res.send(err);
     }

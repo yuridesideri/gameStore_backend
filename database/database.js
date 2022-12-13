@@ -19,11 +19,5 @@ const connection = new Pool({
   export const rentalsTb = 'rentals';
 
 
-// async function test (){
-//     const testing = await connection.query("SELECT * FROM " + categoriesTb);
-//     return testing.rows;
-// }
-
-// console.log(await test());
 
 export default connection;

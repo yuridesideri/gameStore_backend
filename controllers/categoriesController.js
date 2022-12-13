@@ -18,7 +18,7 @@ export async function postCategories (req, res){
         const categoryToPostValid = await categoryPostSchema.validateAsync(categoryToPost);
         const { name } = categoryToPostValid;
 
-        const checkNameAlreadyExists = await connection.query(`
+        const {rows: checkNameAlreadyExists} = await connection.query(`
             SELECT name
             FROM ${categoriesTb}
             WHERE name = $1
