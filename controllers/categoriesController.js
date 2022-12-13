@@ -17,23 +17,22 @@ export async function postCategories (req, res){
     try{
         const categoryToPostValid = await categoryPostSchema.validateAsync(categoryToPost);
         const { name } = categoryToPostValid;
-        //TODO
-        //RETURN 400 IF NAME IS EMPTY
 
         const checkNameAlreadyExists = await connection.query(`
             SELECT name
             FROM ${categoriesTb}
             WHERE name = $1
-        `,[name]).rows;
+        `,[name]);
         
-        if (checkNameAlreadyExists) throw new Error ("Category existent");
+        if (checkNameAlreadyExists.length !== 0) throw new Error ("Category existent");
 
         await InsertQuery(categoriesTb, categoryToPostValid);
 
         res.sendStatus(201);
     }
     catch (err){
-        console.log(err);
+        if (err.name === "ValidationError") res.status(400);
+        if (err.message === "Category existent") res.status(409);
         res.send(err);
     }
 }

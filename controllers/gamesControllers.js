@@ -4,12 +4,15 @@ import { gameSchema } from "../models/gamesModel.js";
 
 export async function listGames (req, res){
      try{
-        const reqParams = req.params;
-        //TODO
-        //Adicionar filtro de queryString
-        const {rows: games} = await connection.query("SELECT * FROM games;");
-        //TODO
-        //Adicionar parte que pega o categoryId e concatena no objeto a categoryName
+        const {name: queryCategoryFilter} = req.query;
+        const parsedQuery = queryCategoryFilter ? queryCategoryFilter : '';
+        
+        const {rows: games} = await connection.query(`
+        SELECT g.*, c.name AS "categoryName"
+        FROM games AS g, categories AS c
+        WHERE LOWER(g.name) LIKE LOWER($1)
+        `,[`${parsedQuery}%`]);
+
         res.send(games);
      } catch (err){
         res.send(err);
@@ -33,10 +36,9 @@ export async function postGames (req, res){
         await InsertQuery(gamesTb, gameToPostValid);
         res.sendStatus(201);
     } catch (err){
+        const errMsg = err.message;
+        if (errMsg === "Game name already exists") res.status(409);
+        res.status(400);
         res.send(err);
-        console.log(err);
-        //TODO
-        //Retorna err 400 (category not found)
-        //Retornar err 409 (game exists)
     }
 }
