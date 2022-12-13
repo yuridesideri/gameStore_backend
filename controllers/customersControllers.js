@@ -24,10 +24,11 @@ export async function insertCustomers (req, res){
     const customerToInsert = req.body;
     try{
         const customerToInsertValid = insertCustomerSchema.validateAsync(customerToInsert);
-        const {name, phone, cpf, birthday} = customerToInsertValid;
+        // const {name, phone, cpf, birthday} = customerToInsertValid;
         //TODO 
         //Check if cpf already exists
-        await connection.query(`INSERT INTO $1 (name, phone, cpf, birthday) = ($2, $3, $4, $5)`,[customersTb, name, phone,cpf,birthday])
+        await connection.query(`INSERT INTO $1
+        VALUES ('$2')`,[customersTb, customerToInsertValid])
         res.sendStatus(201);
     } catch(err){
         res.send(err);

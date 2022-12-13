@@ -1,4 +1,5 @@
 import connection, { categoriesTb } from "../database/database.js";
+import { InsertQuery } from "../helpers/helpers.js";
 import { categoryPostSchema } from "../models/categoriesModel.js";
 
 export async function listCategories (req,res){
@@ -16,7 +17,19 @@ export async function postCategories (req, res){
     try{
         const categoryToPostValid = await categoryPostSchema.validateAsync(categoryToPost);
         const { name } = categoryToPostValid;
-        await connection.query(`INSERT INTO ${categoriesTb} (name) VALUES ('${name}') IF NOT EXISTS (SELECT name FROM ${categoriesTb} WHERE name='${name}'); `);
+        //TODO
+        //RETURN 400 IF NAME IS EMPTY
+
+        const checkNameAlreadyExists = await connection.query(`
+            SELECT name
+            FROM ${categoriesTb}
+            WHERE name = $1
+        `,[name]).rows;
+        
+        if (checkNameAlreadyExists) throw new Error ("Category existent");
+
+        await InsertQuery(categoriesTb, categoryToPostValid);
+
         res.sendStatus(201);
     }
     catch (err){
