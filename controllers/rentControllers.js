@@ -5,7 +5,8 @@ import { InsertQuery, parseDelayFee } from "../helpers/helpers.js";
 
 
 export async function listRental (req, res){
-    const {customerId, gameId} = req.query;
+    const {customerId = 0, gameId = 0} = req.query;
+
     try{
         
         const {rows: rentals} = await connection.query(`
@@ -25,14 +26,15 @@ export async function listRental (req, res){
         JOIN ${customersTb} AS cu ON re."customerId" = cu.id
         JOIN ${gamesTb} AS ga ON re."gameId" = ga.id
         JOIN ${categoriesTb} AS ca ON ga."categoryId"=ca.id
-        `);
 
-        console.log(rentals);
+        WHERE 
+        CASE 
+            WHEN $1!=0 OR $2!=0
+                THEN ga.id=$1 OR cu.id=$2
+            ELSE true
+        END
+        `,[gameId, customerId]);
 
-        //TODO 
-        //APENAS GAME ID
-        //APENAS CUSTOMER ID 
-        //FIX OBJECT NOTATION FOR GAMES & CUSTOMER
 
         res.send(rentals);
     } catch (err) {
