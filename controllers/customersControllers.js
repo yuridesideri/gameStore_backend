@@ -1,5 +1,6 @@
 import connection, { customersTb } from "../database/database.js";
-import { insertCustomerSchema } from "../models/clientsModel.js";
+import { InsertQuery } from "../helpers/helpers.js";
+import { insertCustomerSchema } from "../models/customersModel.js";
 
 
 
@@ -12,7 +13,7 @@ export async function listCustomers(req, res){
     try{
         //TODO
         //Filtro por CPF
-        const customers = await connection.query(`SELECT * FROM $1`,[customersTb]);
+        const {rows: customers} = await connection.query(`SELECT * FROM ${customersTb}`);
         res.send(customers);
     } catch (err){
         res.send(err);
@@ -23,14 +24,15 @@ export async function listCustomers(req, res){
 export async function insertCustomers (req, res){
     const customerToInsert = req.body;
     try{
-        const customerToInsertValid = insertCustomerSchema.validateAsync(customerToInsert);
+        const customerToInsertValid = await insertCustomerSchema.validateAsync(customerToInsert);
         // const {name, phone, cpf, birthday} = customerToInsertValid;
         //TODO 
         //Check if cpf already exists
-        await connection.query(`INSERT INTO $1
-        VALUES ('$2')`,[customersTb, customerToInsertValid])
+        console.log(customerToInsertValid);
+        await InsertQuery(customersTb, customerToInsertValid);
         res.sendStatus(201);
     } catch(err){
+        console.log(err);
         res.send(err);
         //TODO
         //If cpf exists -> 409
@@ -39,13 +41,15 @@ export async function insertCustomers (req, res){
 
 
 export async function updateCustomer (req, res){
-    const customerToUpdate = req.body;
+    const {id: customerIdToUpdate} = req.params;
+    const customerDataToUpdate = req.body;
     try{
-        const customerToUpdateValid = insertCustomerSchema.validateAsync(customerToUpdate);
+        const customerToUpdateValid = await insertCustomerSchema.validateAsync(customerDataToUpdate);
         const {name, phone, cpf, birthday} = customerToUpdateValid;
+        console.log(customerToUpdateValid);
         //TODO
         //Check if CPF Exists
-        await connection.query(`UPDATE $1 SET (name, phone, cpf, birthday) = ($2, $3, $4, $5) WHERE cpf=$4`,[customersTb, name, phone,cpf,birthday]);
+        await connection.query(`UPDATE ${customersTb} SET (name, phone, cpf, birthday) = ($1, $2, $3, $4) WHERE id=$5`,[name, phone,cpf,birthday, customerIdToUpdate]);
         res.sendStatus(200);
     } catch (err){
         res.send(err);

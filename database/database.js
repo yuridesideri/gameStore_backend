@@ -1,7 +1,9 @@
 import pkg from "pg";
 import dotenv from "dotenv";
-const { Pool } = pkg;
+const { Pool, types : PgTypes } = pkg;
 dotenv.config();
+PgTypes.setTypeParser(1114, (str) => str); //Prevents pg from auto-parsing date
+PgTypes.setTypeParser(1082, (str) => str); //Prevents pg from auto-parsing date
 
 const connection = new Pool({
     host: 'localhost',
