@@ -1,4 +1,5 @@
 import connection from "../database/database.js";
+import dayjs from "dayjs";
 
 export function parseDelayFee (rentDate, originalPrice, daysRented){
     const timeStamp = dayjs().diff(dayjs(rentDate, 'YYYY-MM-DD'),'day');
@@ -14,9 +15,8 @@ export function parseDelayFee (rentDate, originalPrice, daysRented){
 export async function InsertQuery (table, object) {
     const keys = Object.keys(object).map(key => `"${key}"`);
 
-    const values = Object.values(object)
+    const values = Object.values(object);
 
-    console.log(values);
     const query = `
         INSERT INTO ${table} (${keys})
         VALUES (${keys.map((key, keyInd) => "$" + String(keyInd + 1))})

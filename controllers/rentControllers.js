@@ -1,14 +1,14 @@
 import dayjs from "dayjs";
 import connection, { customersTb, gamesTb, rentalsTb } from "../database/database.js";
 import { rentSchema } from "../models/rentModel.js";
-import { parseDelayFee } from "../helpers/helpers.js";
+import { InsertQuery, parseDelayFee } from "../helpers/helpers.js";
 
 
 export async function listRental (req, res){
     const {customerId, gameId} = req.params;
     try{
-        console.log('s')
-        const rentals = await connection.query(`
+
+        const {rows: rentals} = await connection.query(`
         SELECT re.*, cu AS "customer", ga as "game"
         FROM ${rentalsTb} AS re, ${customersTb} as cu, ${gamesTb} as ga
         WHERE re."customerId" = cu.id AND re."gameId" = ga.id;
@@ -17,6 +17,8 @@ export async function listRental (req, res){
         //TODO 
         //APENAS GAME ID
         //APENAS CUSTOMER ID 
+        //FIX OBJECT NOTATION FOR GAMES & CUSTOMER
+
         res.send(rentals);
     } catch (err) {
         res.send(err);
@@ -27,18 +29,20 @@ export async function postRental (req, res){
     const rentalToInsert = req.body;
     try{
         const rentalToInsertValid = await rentSchema.validateAsync(rentalToInsert);
-        const {gamePrice} = await connection.query(`
+        const {rows: [{gamePrice}]} = await connection.query(`
             SELECT "pricePerDay" AS "gamePrice"
             FROM ${gamesTb} AS g
             WHERE g.id = $1
-        `, [rentalToInsertValid.gameId])[0]
+        `, [rentalToInsertValid.gameId])
+
+
 
         const rentalToInsertPopulated = {
             ...rentalToInsertValid,
             rentDate : dayjs().format('YYYY-MM-DD'),
             returnDate : null,
             delayFee : null,
-            originalPrice : gamePrice * rentalToInsertValid?.daysRented
+            originalPrice : gamePrice * (rentalToInsertValid.daysRented)
         }
 
         //TODO
@@ -46,14 +50,12 @@ export async function postRental (req, res){
         //CHECK FOR GAME STOCK
         //CHECK FOR CUSTOMER ID
 
-        await connection.query(`
-            INSERT INTO ${rentalsTb}
-            VALUES($1)
-        `,[rentalToInsertPopulated])
+        await InsertQuery(rentalsTb ,rentalToInsertPopulated);
 
         res.sendStatus(201);
 
     } catch (err) {
+        console.log(err);
         res.status(400).send(err);
     }
 }
@@ -62,30 +64,33 @@ export async function postRental (req, res){
 export async function finishRental (req, res){
     const {id : rentalId} = req.params;
     try {
-        const dbRent = await connection.query(`
+        const {rows: [dbRent]} = await connection.query(`
             SELECT * 
             FROM ${rentalsTb}
             WHERE id=$1
         `,[rentalId])
+
         const {rentDate, daysRented, originalPrice, id} = dbRent;
 
-        if (!dbRent) throw new Error('Rent Not Found');
+        if (null) throw new Error('Rent Not Found'); //TODO Check for inexistent
+
         //TODO
         //CHECK IF RENT IS ALREADY COMPLETED -> 400
         //RETURN 400 IF RENT ERROR
-
         const returnDate = dayjs().format('YYYY-MM-DD');
         const delayFee = parseDelayFee(rentDate, originalPrice, daysRented);
 
         await connection.query(`
             UPDATE ${rentalsTb} 
-            SET (returnDate, delayFee) = ($1,$2)
+            SET ("returnDate", "delayFee") = ($1,$2)
             WHERE id=$3
         `,[returnDate, delayFee, id]);
+
 
         res.sendStatus(200);
 
     } catch (err) {
+        console.log(err);
         res.send(err);
     }
 }
@@ -94,14 +99,14 @@ export async function finishRental (req, res){
 export async function deleteRental (req, res){
     const {id : rentalId} = req.params;
     try{
-        const rental = await connection.query(`
+        const {rows: [rental]} = await connection.query(`
             SELECT * 
             FROM ${rentalsTb}
             WHERE id = $1
-        `, [rentalId])[0];
+        `, [rentalId]);
 
-        if (!rental) throw new Error("Rental doesn't exist");
-        if (!rental.returnDate) throw new Error("Open rental");
+        if (!rental?.id) throw new Error("Rental doesn't exist");
+        if (!rental?.returnDate) throw new Error("Open rental");
 
         await connection.query(`
             DELETE 
@@ -111,6 +116,11 @@ export async function deleteRental (req, res){
 
         res.sendStatus(200);
     }   catch (err) {
-        res.send(err);
-    }
+
+        const errMsg = err.message;
+        if (errMsg === "Rental doesn't exist") res.status(404);
+        if (errMsg === "Open rental") res.status(400);
+        res.send(errMsg);
+        
+      }
 }
